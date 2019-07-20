@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/caarlos0/env"
 	"github.com/google/uuid"
@@ -23,6 +24,8 @@ func main() {
 	if err != nil {
 		logger.Fatalf("load env error %s", err.Error())
 	}
+	s.c.Azure.Prefix = strings.TrimSuffix(strings.TrimPrefix(s.c.Azure.Prefix, "/"), "/")
+	s.c.BaseURL = strings.TrimSuffix(s.c.BaseURL, "/")
 	az := s.c.Azure
 	s.az = newAZContainer(az.Name, az.Key, az.Container)
 	addr := fmt.Sprintf(":%d", s.c.HTTPPORT)
@@ -94,6 +97,18 @@ func (s *server) get(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, reader)
 }
 
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
+}
+
 func (s *server) post(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -101,7 +116,8 @@ func (s *server) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	blobName := s.c.Azure.Prefix + r.URL.Path + uuid.New().String() + "/" + header.Filename
+
+	blobName := s.c.Azure.Prefix + singleJoiningSlash(r.URL.Path, uuid.New().String()) + "/" + header.Filename
 	logger.Infof("uploading to blob %s", blobName)
 	blobURL := s.az.NewBlockBlobURL(blobName)
 	_, err = azblob.UploadStreamToBlockBlob(
@@ -115,7 +131,7 @@ func (s *server) post(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage error", http.StatusInternalServerError)
 		return
 	}
-	url := s.c.BaseURL + blobName
+	url := s.c.BaseURL + "/" + blobName
 	res := map[string]interface{}{
 		"url": url,
 	}
