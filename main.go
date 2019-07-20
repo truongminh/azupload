@@ -101,8 +101,8 @@ func (s *server) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	blobName := s.c.Azure.Prefix + "/" + uuid.New().String() + "/" + header.Filename
-	logger.Infof("blob name %s", blobName)
+	blobName := s.c.Azure.Prefix + r.URL.Path + uuid.New().String() + "/" + header.Filename
+	logger.Infof("uploading to blob %s", blobName)
 	blobURL := s.az.NewBlockBlobURL(blobName)
 	_, err = azblob.UploadStreamToBlockBlob(
 		ctx, file, blobURL, azblob.UploadStreamToBlockBlobOptions{

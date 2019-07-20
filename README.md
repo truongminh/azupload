@@ -11,7 +11,6 @@ AZURE_BLOB_PREFIX=azupload
 BASE_URL=/files
 
 # Usage
-- Upload a file: post form `file` to `/` 
-If the request succeed, a url is created.
-Just get the content using the new url
-
+- Upload a file: post form `file` to `/<path>` 
+If the request succeed, the server replies with a url of the form `/azupload/<path>/<uuid>/<filename>`.
+The file can be get using the url.
